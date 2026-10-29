@@ -1,5 +1,10 @@
 {
   "name": "Elite CV Architect AI",
-  "description": "Uma IA de elite especializada em RH e Coaching de Carreira para transformar currículos comuns em documentos de alto impacto personalizados para empresas específicas.",
-  "requestFramePermissions": []
+  "description": "IA especializada em RH, ATS e Coaching de Carreira para otimizar currículos e gerar roteiros e simuladores de perguntas de entrevista por cargo alvo.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

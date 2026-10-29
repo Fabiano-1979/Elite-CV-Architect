@@ -1,12 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { CVFormData } from '../types';
 
-// O PDF.js é carregado via script tag no HTML para evitar erros de módulo
-declare global {
-  interface Window {
-    pdfjsLib: any;
-  }
-}
 
 interface InputFormProps {
   onSubmit: (data: CVFormData) => void;
@@ -53,6 +47,13 @@ export const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => 
         setErrors(newErrors);
       }
     }
+  };
+
+  const handleGenericCompany = () => {
+    setFormData(prev => ({
+      ...prev,
+      targetCompany: "Mercado Geral (Foco na Função)"
+    }));
   };
 
   const extractTextFromPDF = async (file: File): Promise<string> => {
@@ -168,7 +169,17 @@ export const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2 relative">
-            <label className="text-sm font-semibold text-slate-700">Empresa Alvo <span className="text-red-500">*</span></label>
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700">Empresa Alvo <span className="text-red-500">*</span></label>
+              <button 
+                type="button" 
+                onClick={handleGenericCompany}
+                className="text-xs bg-slate-100 hover:bg-slate-200 text-indigo-600 font-medium px-2 py-1 rounded transition-colors border border-slate-200"
+                title="Preencher com 'Mercado Geral' para focar apenas no cargo"
+              >
+                Usar Genérico
+              </button>
+            </div>
             <div className="relative">
               <input
                 type="text"

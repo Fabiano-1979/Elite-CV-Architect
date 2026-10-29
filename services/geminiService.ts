@@ -1,58 +1,14 @@
-import { GoogleGenAI } from "@google/genai";
-import { OptimizationResult } from "../types";
+import { 
+  OptimizationResult, 
+  InterviewQuestion, 
+  AtsScoreDetails, 
+  ExpertCareerAdvice,
+  InterviewAnswerEvaluation 
+} from "../types";
 
-const PROMPT_TEMPLATE = (cv: string, company: string, role: string, jobDesc: string, linkedin: string, github: string) => `
-Atue como uma inteligência artificial de elite, especializada em Recrutamento e Seleção (RH) e Coaching de Alta Performance de Carreira. Sua missão é transformar um currículo comum em um documento de alto impacto, personalizado para a empresa ${company} e o cargo de ${role}.
-
-ENTRADAS DO USUÁRIO:
-1. EMPRESA ALVO: ${company}
-2. CARGO PRETENDIDO: ${role}
-3. DESCRIÇÃO DA VAGA / LINK (Contexto Crítico):
-"""
-${jobDesc ? jobDesc : "Nenhuma descrição fornecida. Baseie-se nas práticas padrão de mercado para o cargo."}
-"""
-4. URL LINKEDIN (Perfil Profissional): ${linkedin || "Não informado"}
-5. URL GITHUB (Portfólio Técnico): ${github || "Não informado"}
-
-6. CURRÍCULO ORIGINAL:
-"""
-${cv}
-"""
-
-SEU FLUXO DE TRABALHO (INTERNO):
-Passo 1: Pesquisa de Campo & Análise de Vaga e Perfis:
-- **Descrição da Vaga:** Se houver LINK, acesse. Se for TEXTO, analise. Extraia keywords críticas (hard/soft skills).
-- **Perfis Sociais:** Se foram fornecidas URLs de LinkedIn ou GitHub:
-    - OBRIGATÓRIO: Incluir estes links formatados profissionalmente no CABEÇALHO do currículo.
-    - OBRIGATÓRIO: Use a ferramenta de busca (Google Search) para tentar encontrar informações públicas recentes nesses perfis (ex: stacks em repositórios recentes do GitHub, resumo atualizado no LinkedIn) que possam não estar no texto original do CV. Use isso para enriquecer a seção de Habilidades.
-- **Empresa:** Pesquise cultura, valores e missão da ${company}.
-
-Passo 2: Análise Comparativa (Gap Analysis):
-- Cruze o currículo + dados dos perfis sociais (se houver) com os requisitos da vaga.
-- Identifique lacunas e reformule experiências.
-
-Passo 3: Redação Estratégica:
-- Resumo Profissional focado em resolução de problemas da vaga.
-- Seção de Habilidades robusta logo após o resumo.
-- Verbos de ação e métricas.
-
-DIRETRIZES DE SAÍDA:
-- O currículo deve ser entregue em formato de texto Markdown perfeitamente editado.
-- **A estrutura deve seguir a ordem: Cabeçalho (com Links de LinkedIn/Github se existirem) > Resumo Profissional > Habilidades > Experiência Profissional > Formação Acadêmica > Idiomas/Outros.**
-- Use um layout limpo, moderno e profissional.
-- Otimize para ATS.
-
-**IMPORTANTE - DICAS DE OURO (Sessão Final):**
-Após concluir o currículo, pule duas linhas, insira um separador (---) e crie uma seção exclusiva intitulada "**🏆 DICAS DE OURO & ANÁLISE ESTRATÉGICA**".
-Nesta seção, forneça ao candidato:
-1. **Otimização ATS:** Liste 3-5 palavras-chave críticas que foram inseridas e por quê.
-2. **Cultura Fit:** Uma dica específica de como se comportar na entrevista considerando a cultura da ${company}.
-3. **Análise de Presença Online:** Se LinkedIn ou GitHub foram fornecidos, dê uma dica rápida de como melhorá-los para essa vaga específica (ex: "Fixe o repositório X no seu GitHub" ou "Atualize seu título no LinkedIn para Y").
-4. **Ponto de Melhoria:** Se houver qualificação faltante, sugira como abordar.
-
-TOM DE VOZ: Profissional, confiante, estratégico e alinhado com a cultura da ${company}.
-`;
-
+/**
+ * Envia o currículo para otimização no servidor (Proxy Seguro Backend Gemini API).
+ */
 export const optimizeCV = async (
   cvText: string,
   company: string,
@@ -62,35 +18,176 @@ export const optimizeCV = async (
   githubUrl?: string
 ): Promise<OptimizationResult> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    // Using gemini-2.5-flash which works well with tools like Google Search
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: PROMPT_TEMPLATE(
-        cvText, 
-        company, 
-        role, 
-        jobDesc, 
-        linkedinUrl || "", 
-        githubUrl || ""
-      ),
-      config: {
-        tools: [{ googleSearch: {} }],
-        temperature: 0.7,
+    const res = await fetch('/api/optimize-cv', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        cvText,
+        company,
+        role,
+        jobDesc,
+        linkedinUrl,
+        githubUrl,
+      }),
     });
 
-    const text = response.text || "Não foi possível gerar o currículo. Tente novamente.";
-    const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro HTTP ${res.status} ao otimizar currículo.`);
+    }
 
-    return {
-      content: text,
-      groundingMetadata,
-    };
+    const data: OptimizationResult = await res.json();
+    return data;
+  } catch (error: any) {
+    console.error("Erro na chamada de otimização de CV:", error);
+    throw new Error(error.message || "Falha ao comunicar com o servidor de IA.");
+  }
+};
 
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw new Error("Falha ao comunicar com a IA de Recrutamento.");
+/**
+ * Recalcula o ATS Score enviando o texto atualizado ao servidor.
+ */
+export const recalculateAtsScore = async (
+  currentCvContent: string,
+  role: string,
+  company: string,
+  jobDesc?: string
+): Promise<AtsScoreDetails> => {
+  try {
+    const res = await fetch('/api/recalculate-ats', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        currentCvContent,
+        role,
+        company,
+        jobDesc,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro HTTP ${res.status}`);
+    }
+
+    const data: AtsScoreDetails = await res.json();
+    return data;
+  } catch (err: any) {
+    console.error("Erro ao recalcular ATS Score no servidor:", err);
+    throw new Error(err.message || "Falha ao recalcular pontuação ATS.");
+  }
+};
+
+/**
+ * Solicita novas perguntas de entrevista ao servidor.
+ */
+export const generateMoreInterviewQuestions = async (
+  role: string,
+  company: string,
+  jobDesc?: string,
+  categoryFilter?: string
+): Promise<InterviewQuestion[]> => {
+  try {
+    const res = await fetch('/api/generate-interview-questions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        role,
+        company,
+        jobDesc,
+        categoryFilter,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro HTTP ${res.status}`);
+    }
+
+    const data: InterviewQuestion[] = await res.json();
+    return data;
+  } catch (error: any) {
+    console.error("Erro ao gerar novas perguntas no servidor:", error);
+    throw new Error(error.message || "Falha ao gerar perguntas de entrevista.");
+  }
+};
+
+/**
+ * Avalia uma resposta de simulação de entrevista no servidor.
+ */
+export const evaluateInterviewAnswer = async (
+  question: string,
+  answer: string,
+  role: string,
+  company: string,
+  jobDesc?: string
+): Promise<InterviewAnswerEvaluation> => {
+  try {
+    const res = await fetch('/api/evaluate-interview-answer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        question,
+        answer,
+        role,
+        company,
+        jobDesc,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro HTTP ${res.status}`);
+    }
+
+    const data: InterviewAnswerEvaluation = await res.json();
+    return data;
+  } catch (error: any) {
+    console.error("Erro ao avaliar resposta no servidor:", error);
+    throw new Error(error.message || "Falha ao avaliar resposta com IA.");
+  }
+};
+
+/**
+ * Obtém conselho de carreira de especialista a partir do servidor.
+ */
+export const getExpertCareerAdvice = async (
+  role: string,
+  company: string,
+  jobDesc?: string,
+  cvText?: string
+): Promise<ExpertCareerAdvice> => {
+  try {
+    const res = await fetch('/api/expert-career-advice', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        role,
+        company,
+        jobDesc,
+        cvText,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro HTTP ${res.status}`);
+    }
+
+    const data: ExpertCareerAdvice = await res.json();
+    return data;
+  } catch (error: any) {
+    console.error("Erro ao obter conselhos de especialista no servidor:", error);
+    throw new Error(error.message || "Falha ao obter conselhos de carreira.");
   }
 };
