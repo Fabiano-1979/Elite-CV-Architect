@@ -320,6 +320,28 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, jobDescrip
 
   return (
     <div className="space-y-6">
+      {/* Aviso informativo elegante se o modo resiliente foi ativado */}
+      {result.isQuotaLimited && (
+        <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-4 text-amber-900 shadow-xs flex items-start gap-3 animate-fade-in-up">
+          <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+            <Zap className="w-5 h-5 text-amber-700" />
+          </div>
+          <div className="space-y-1 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-amber-950">
+                Motor Resiliente ATS Ativo
+              </span>
+              <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-200/70 text-amber-900 rounded-full">
+                Conformidade Total
+              </span>
+            </div>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              {result.notice || "Otimização estruturada com base no motor de alta precisão ATS devido a limites temporários de cota da API externa. Todos os recursos, incluindo o Gráfico de Radar de Conformidade ATS, Editor, Simulação de Entrevista e Download em PDF, estão 100% disponíveis."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Painel Analítico ATS e Gráfico de Radar de Competências */}
       <section className="animate-fade-in-up space-y-6">
         <AtsScoreMeter

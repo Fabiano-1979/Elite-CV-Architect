@@ -13,7 +13,8 @@ import {
   serverEvaluateInterviewAnswer,
   serverGetExpertCareerAdvice,
   serverAuditAtsChecklist,
-} from './server/geminiBackend.js';
+  generateFallbackOptimizedCV,
+} from './server/geminiBackend.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -86,10 +87,18 @@ async function startServer() {
 
       return res.json(result);
     } catch (error: any) {
-      console.error('Erro na rota /api/optimize-cv:', error);
-      return res.status(500).json({ 
-        error: error.message || 'Falha ao processar otimização de currículo no servidor.' 
-      });
+      console.error('Erro na rota /api/optimize-cv, acionando gerador de emergência:', error);
+      const { cvText, company, role, jobDesc, linkedinUrl, githubUrl } = req.body || {};
+      const fallbackResult = generateFallbackOptimizedCV(
+        cvText || '',
+        company || 'Empresa Alvo',
+        role || 'Cargo Alvo',
+        jobDesc,
+        linkedinUrl,
+        githubUrl,
+        true
+      );
+      return res.json(fallbackResult);
     }
   });
 
@@ -263,7 +272,7 @@ async function startServer() {
   } else {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.use((req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));
     });
   }

@@ -105,15 +105,37 @@ const App: React.FC = () => {
 
         {/* Error State */}
         {appState === AppState.ERROR && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl shadow-sm">
+          <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm space-y-3">
             <div className="flex items-start">
               <div className="flex-shrink-0 mt-0.5">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700 font-medium">
+              <div className="ml-3 flex-1">
+                <h4 className="text-sm font-bold text-red-800">
+                  Não foi possível concluir a chamada com a IA no momento
+                </h4>
+                <p className="text-xs text-red-700 mt-1 leading-relaxed">
                   {error}
                 </p>
+                {submittedData && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleFormSubmit(submittedData)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Tentar Novamente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAppState(AppState.IDLE)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-red-200 hover:bg-red-50 text-red-700 text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      Editar Dados
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

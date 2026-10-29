@@ -157,6 +157,8 @@ export interface OptimizationResult {
       };
     }>;
   };
+  isQuotaLimited?: boolean;
+  notice?: string;
 }
 
 export enum AppState {
